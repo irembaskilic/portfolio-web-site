@@ -58,16 +58,6 @@ nav ul li a:hover {
   text-align: center;
   color: #fff; 
 }
-/* .hero-bg {
-  background: url(görsel/görsel.png) no-repeat center center/cover;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgb(180, 57, 57);
-  text-align: center;
-  position: relative;
-}
 
 /* Arka planı daha cool göstermek için karartma */
 .hero-bg::after {
@@ -308,4 +298,14 @@ footer {
 
 .prev:hover, .next:hover {
   color: #f1f1f1;
+}
+/* 600 piksel ve altındaki ekranlar için geçerli olacak CSS kuralları */
+@media only screen and (max-width: 600px) {
+  /* Örneğin, mobil görünümde yazı boyutunu büyüt ve sütunları alt alta diz */
+  body {
+    font-size: 18px;
+  }
+  .sutun {
+    width: 100%;
+  }
 }
