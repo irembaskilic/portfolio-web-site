@@ -154,3 +154,20 @@ footer strong {
   transition:0.3s;
 }
 #back-to-top:hover { background:#e63b50; }
+
+/* İletişim Bölümü Buton Stili (Yeni Eklenti) */
+.contact-btn {
+    margin: 30px auto; 
+    display: block; 
+    max-width: 300px;
+    font-size: 18px;
+    padding: 15px 30px;
+    box-shadow: 0 4px 15px rgba(255, 76, 96, 0.4); 
+}
+
+/* Mevcut buton stiline responsive düzeltme */
+@media (max-width: 600px) {
+    .contact-btn {
+        max-width: 90%; 
+    }
+}
