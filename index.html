@@ -59,7 +59,16 @@ nav ul li a:hover { color:#ff4c60; text-shadow:0 0 8px rgba(255,76,96,0.8); }
 }
 #hero h2 { font-size:48px; }
 #hero span { color:#ff4c60; text-shadow:0 0 20px rgba(255,76,96,0.6); }
-.typing { margin:15px 0; font-size:20px; color:#ddd; }
+.typing { margin:15px 0; font-size:20px; color:#ddd; min-height:28px; display:inline-block; }
+.typing::after {
+  content:'';
+  display:inline-block;
+  width:2px; height:1.1em;
+  background:#ff4c60;
+  margin-left:3px;
+  vertical-align:text-bottom;
+  animation:blinkCursor 0.8s steps(1) infinite;
+}
 .btn { background:#ff4c60; color:#fff; padding:12px 24px; text-decoration:none; border-radius:5px; transition:0.3s; display:inline-block; box-shadow:0 0 20px rgba(255,76,96,0.4); }
 .btn:hover { background:#e63b50; box-shadow:0 0 30px rgba(255,76,96,0.7); }
 
@@ -97,10 +106,31 @@ section { padding:80px 50px; text-align:center; position:relative; z-index:1; }
   border:1px solid rgba(255,76,96,0.2);
   padding:0; border-radius:14px;
   box-shadow:0 8px 25px rgba(0,0,0,0.4);
-  transition:transform 0.3s; perspective:1000px;
+  transition:transform 0.15s ease-out, box-shadow 0.4s ease;
+  transform-style:preserve-3d;
+  will-change:transform;
 }
-.card:hover { transform:translateY(-8px) rotateX(5deg) rotateY(5deg); box-shadow:0 15px 35px rgba(255,76,96,0.25); transition:all 0.4s ease; }
-.card-header { padding:20px; font-weight:600; font-size:18px; cursor:pointer; background:rgba(255,76,96,0.85); color:#fff; border-radius:14px 14px 0 0; user-select:none; backdrop-filter:blur(6px); }
+.card:hover { box-shadow:0 20px 45px rgba(255,76,96,0.3); }
+.card-header {
+  padding:20px; font-weight:600; font-size:18px; cursor:pointer;
+  background:rgba(255,76,96,0.85); color:#fff; border-radius:14px 14px 0 0;
+  user-select:none; backdrop-filter:blur(6px);
+  position:relative; overflow:hidden;
+}
+.card-header::before {
+  content:''; position:absolute; top:0; left:-75%;
+  width:50%; height:100%;
+  background:linear-gradient(120deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform:skewX(-20deg);
+  transition:left 0.7s ease;
+}
+.card:hover .card-header::before { left:130%; }
+.card-header::after {
+  content:'+';
+  position:absolute; right:20px; top:50%; transform:translateY(-50%);
+  font-size:20px; transition:transform 0.35s ease;
+}
+.card-header.open::after { transform:translateY(-50%) rotate(45deg); }
 .card-content { max-height:0; overflow:hidden; transition:max-height 0.5s ease,padding 0.5s ease; font-size:14px; background:rgba(10,10,14,0.3); border-top:1px solid rgba(255,76,96,0.15); border-radius:0 0 14px 14px; padding:0 20px; color:#e5e5e5; }
 .card-content.show { max-height:400px; padding:15px 20px; overflow-y:auto; }
 .portfolio-images { display:flex; flex-wrap:wrap; gap:10px; margin-top:15px; justify-content:center; }
@@ -124,7 +154,15 @@ section { padding:80px 50px; text-align:center; position:relative; z-index:1; }
   width:56px; height:56px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
 }
-.social-icons a:hover { color:#ff4c60; box-shadow:0 0 20px rgba(255,76,96,0.5); transform:translateY(-4px); }
+.social-icons a { transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1), color 0.3s, box-shadow 0.3s; }
+.social-icons a:hover { color:#ff4c60; box-shadow:0 0 20px rgba(255,76,96,0.5); transform:translateY(-6px) scale(1.12) rotate(-6deg); }
+
+@keyframes blinkCursor { 0%,50% { opacity:1; } 51%,100% { opacity:0; } }
+
+/* Erişilebilirlik: hareket azaltma tercihi olan kullanıcılar için animasyonları kıs */
+@media (prefers-reduced-motion: reduce) {
+  .fade-slide, .card, .btn, .social-icons a, .card-header::before { transition:none !important; animation:none !important; }
+}
 
 #inspiration {
   text-align:center; padding:40px 20px; font-style:italic; color:#ddd;
@@ -215,7 +253,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <section id="hero" class="fade-slide">
   <div class="hero-text">
     <h2>Merhaba, ben <span>İrem</span></h2>
-    <p class="typing">Peyzaj Mimarı | Kreatif Tasarımcı</p>
+    <p class="typing" id="typingText"></p>
     <a href="#portfolio" class="btn">Projelerime Bak</a>
   </div>
 </section>
@@ -360,15 +398,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const canvas = document.getElementById('bg-canvas');
   const scene = new THREE.Scene();
 
+  // Mobil / düşük güçlü cihaz ve "hareketi azalt" tespiti — performans için
+  const isMobile = window.innerWidth < 768 || /Mobi|Android/i.test(navigator.userAgent);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 2000);
   camera.position.z = 500;
 
-  const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !isMobile, alpha: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
 
-  // ---- Neon parçacık tarlası ----
-  const PARTICLE_COUNT = 2200;
+  // ---- Neon parçacık tarlası ---- (mobilde daha az parçacık = daha akıcı performans)
+  const PARTICLE_COUNT = isMobile ? 900 : 2200;
   const positions = new Float32Array(PARTICLE_COUNT * 3);
   const colors = new Float32Array(PARTICLE_COUNT * 3);
   const sizes = new Float32Array(PARTICLE_COUNT);
@@ -431,7 +473,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   scene.add(particles);
 
   // ---- Uzak "yıldız tozu" katmanı (derinlik hissi için ikinci küre) ----
-  const DUST_COUNT = 900;
+  const DUST_COUNT = isMobile ? 350 : 900;
   const dustPositions = new Float32Array(DUST_COUNT * 3);
   for (let i = 0; i < DUST_COUNT; i++) {
     const i3 = i * 3;
@@ -452,6 +494,125 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   });
   const dust = new THREE.Points(dustGeometry, dustMaterial);
   scene.add(dust);
+
+  // ---- Kayan Meteorlar ----
+  const METEOR_COUNT = isMobile ? 3 : 6;
+  const meteors = [];
+  const meteorGeometry = new THREE.BufferGeometry();
+  meteorGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0,0,0, -30,10,0]), 3));
+  meteorGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array([1,1,1, 1,0.3,0.4]), 3));
+
+  function spawnMeteor() {
+    const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+    const line = new THREE.Line(meteorGeometry.clone(), mat);
+    line.position.set((Math.random() - 0.5) * 1400, 300 + Math.random() * 200, (Math.random() - 0.5) * 600 - 200);
+    line.userData.velocity = new THREE.Vector3(-4 - Math.random() * 3, -6 - Math.random() * 3, 0);
+    line.userData.life = 0;
+    const angle = Math.atan2(line.userData.velocity.y, line.userData.velocity.x);
+    line.rotation.z = angle;
+    scene.add(line);
+    meteors.push(line);
+  }
+
+  function updateMeteors() {
+    for (let i = meteors.length - 1; i >= 0; i--) {
+      const m = meteors[i];
+      m.position.x += m.userData.velocity.x;
+      m.position.y += m.userData.velocity.y;
+      m.userData.life++;
+      m.material.opacity = Math.max(0, 0.9 - m.userData.life * 0.01);
+      if (m.userData.life > 90) {
+        scene.remove(m);
+        meteors.splice(i, 1);
+      }
+    }
+    if (!reduceMotion && Math.random() < (isMobile ? 0.004 : 0.01) && meteors.length < METEOR_COUNT) {
+      spawnMeteor();
+    }
+  }
+
+  // ---- Tıklama ile parçacık patlaması ----
+  const bursts = [];
+  function spawnBurst(x, y) {
+    const count = isMobile ? 35 : 70;
+    const positions = new Float32Array(count * 3);
+    const velocities = [];
+    const colors = new Float32Array(count * 3);
+
+    // Ekran koordinatını 3D dünya koordinatına çevir
+    const vector = new THREE.Vector3((x / window.innerWidth) * 2 - 1, -(y / window.innerHeight) * 2 + 1, 0.5);
+    vector.unproject(camera);
+    const dir = vector.sub(camera.position).normalize();
+    const distance = -camera.position.z / dir.z;
+    const worldPos = camera.position.clone().add(dir.multiplyScalar(distance));
+
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3;
+      positions[i3] = worldPos.x;
+      positions[i3 + 1] = worldPos.y;
+      positions[i3 + 2] = worldPos.z;
+
+      const speed = 2 + Math.random() * 6;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.random() * Math.PI;
+      velocities.push(new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta) * speed,
+        Math.sin(phi) * Math.sin(theta) * speed,
+        Math.cos(phi) * speed
+      ));
+
+      const c = palette[Math.floor(Math.random() * palette.length)];
+      colors[i3] = c.r; colors[i3+1] = c.g; colors[i3+2] = c.b;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const mat = new THREE.PointsMaterial({ size: 5, map: glowTexture, vertexColors: true, transparent: true, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending });
+    const points = new THREE.Points(geo, mat);
+    points.userData = { velocities, life: 0 };
+    scene.add(points);
+    bursts.push(points);
+  }
+
+  function updateBursts() {
+    for (let i = bursts.length - 1; i >= 0; i--) {
+      const b = bursts[i];
+      const pos = b.geometry.attributes.position;
+      for (let j = 0; j < b.userData.velocities.length; j++) {
+        const v = b.userData.velocities[j];
+        pos.array[j*3] += v.x;
+        pos.array[j*3+1] += v.y;
+        pos.array[j*3+2] += v.z;
+        v.multiplyScalar(0.95); // sürtünme
+      }
+      pos.needsUpdate = true;
+      b.userData.life++;
+      b.material.opacity = Math.max(0, 1 - b.userData.life * 0.02);
+      if (b.userData.life > 50) {
+        scene.remove(b);
+        b.geometry.dispose();
+        b.material.dispose();
+        bursts.splice(i, 1);
+      }
+    }
+  }
+
+  window.addEventListener('click', (e) => {
+    if (reduceMotion) return;
+    // Etkileşimli öğelere (linkler, kartlar vb.) tıklarken de hafif bir patlama hoş bir dokunuş olur
+    spawnBurst(e.clientX, e.clientY);
+  });
+  window.addEventListener('touchstart', (e) => {
+    if (reduceMotion || !e.touches[0]) return;
+    spawnBurst(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+
+  // ---- Sekme gizliyken render'ı durdur (performans / pil tasarrufu) ----
+  let isPageVisible = true;
+  document.addEventListener('visibilitychange', () => {
+    isPageVisible = document.visibilityState === 'visible';
+  });
 
   // ---- Fare Parallax ----
   let mouseX = 0, mouseY = 0;
@@ -514,6 +675,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 function toggleCard(element) {
   const content = element.nextElementSibling;
   content.classList.toggle("show");
+  element.classList.toggle("open");
 }
 
 // Modal Görüntüleme
@@ -572,6 +734,70 @@ window.addEventListener('scroll', () => {
   if(window.scrollY > 400) backToTop.style.display = 'block';
   else backToTop.style.display = 'none';
 });
+
+/* ============================================================
+   Hero yazı animasyonu (typewriter)
+   ============================================================ */
+(function(){
+  const el = document.getElementById('typingText');
+  if (!el) return;
+  const phrases = ["Peyzaj Mimarı | Kreatif Tasarımcı", "3D Görselleştirme | Marka Kimliği", "Doğayı ve Tasarımı Buluşturuyorum"];
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reduceMotion) {
+    el.textContent = phrases[0];
+    return;
+  }
+
+  let phraseIndex = 0, charIndex = 0, deleting = false;
+
+  function tick() {
+    const current = phrases[phraseIndex];
+    if (!deleting) {
+      charIndex++;
+      el.textContent = current.slice(0, charIndex);
+      if (charIndex === current.length) {
+        deleting = true;
+        setTimeout(tick, 1800);
+        return;
+      }
+    } else {
+      charIndex--;
+      el.textContent = current.slice(0, charIndex);
+      if (charIndex === 0) {
+        deleting = false;
+        phraseIndex = (phraseIndex + 1) % phrases.length;
+      }
+    }
+    setTimeout(tick, deleting ? 35 : 65);
+  }
+  tick();
+})();
+
+/* ============================================================
+   Kartlara fare ile hafif 3D tilt mikro-animasyonu
+   ============================================================ */
+(function(){
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion) return;
+  const cards = document.querySelectorAll('.card');
+
+  cards.forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const rotateX = ((y - centerY) / centerY) * -6;
+      const rotateY = ((x - centerX) / centerX) * 6;
+      card.style.transform = `translateY(-6px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'translateY(0) rotateX(0) rotateY(0)';
+    });
+  });
+})();
 </script>
 </body>
 </html>
